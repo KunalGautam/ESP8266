@@ -12,7 +12,8 @@
 #define dbg Serial 
 
 // Defining Variables, you can change these values
-#define espbaud 9600
+#define espbaud 9600 // Set baud rate of ESP Device
+#define dbgBaud 9600 // Set Baud rate of our console
 #define DEBUG true
 #define TXPIN 10 //TX Pin of ESP01 Module
 #define RXPIN 11 //RX Pin of ESP01 Module
@@ -41,17 +42,26 @@ SoftwareSerial esp(TXPIN, RXPIN);
 
 
 void setup() {
-  dbg.begin(9600);
+  dbg.begin(dbgBaud);
   while (!dbg) {;}
 
   delay(1000); // Delay assuming ESP is getting powered on
 
+  
+  esp.begin(espbaud);
+  while (!esp) { ; }
+
+// Checking if device is available for first time or not
 if (ATresp() == 1) {
   dbg.println("ESP Module Communicated\nConnecting to WiFi Network");
   setESPmode();
 } else {
-  dbg.println("Unable to communicate with ESP Module[ERR001]");
+  dbg.println("Unable to communicate with ESP Module[ERR001] Rebooting Arduino");
+  delay(1000);
+  asm volatile ("  jmp 0");
 }
+
+
 
 
 
@@ -63,8 +73,6 @@ void loop() {
 }
 
 int ATresp() { // Get AT Response
-  esp.begin(espbaud);
-  while (!esp) { ; }
   dbg.println("Sending AT Command");
   esp.println("AT");
   wait_for_esp_response(1000, "OK");
@@ -73,8 +81,6 @@ int ATresp() { // Get AT Response
 }
 
 void setESPmode() {
-  esp.begin(espbaud);
-  while (!esp) { ; }
   dbg.println("Setting Mode of the Device");
   esp.print("AT+CWMODE_CUR=");
   esp.println(CWMODE);
