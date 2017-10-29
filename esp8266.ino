@@ -55,10 +55,11 @@ void setup() {
 if (ATresp() == 1) {
   dbg.println("ESP Module Communicated\nConnecting to WiFi Network");
   setESPmode();
+  dbg.println("WiFi Network Address");
 } else {
   dbg.println("Unable to communicate with ESP Module[ERR001] Rebooting Arduino");
   delay(1000);
-  asm volatile ("  jmp 0");
+  reboot();
 }
 
 
@@ -102,9 +103,10 @@ void setESPmode() {
       wait_for_esp_response(1000, "OK");
       dbg.println(buffer);
 
-  }
+     
+      }
 
-  if (CWMODE == 1 || CWMODE == 3) { // Following should run only if CWMODE IS 1 or 3
+      if (CWMODE == 1 || CWMODE == 3) { // Following should run only if CWMODE IS 1 or 3
         
       // Set Accesspoint name and password
       dbg.println("Connecting to WiFi Network");
@@ -115,6 +117,18 @@ void setESPmode() {
       esp.println("\"");
       wait_for_esp_response(5000, "WIFI GOT IP");
       dbg.println(buffer);
+      // This for loop is to check if device is busy. Sometimes router takes time to get connected. Approx 40 second to wait, and if still not available, reboot Arduino
+       for (int i=0; i <= 19; i++){
+        if (ATresp() == 1) {
+          dbg.println("ESP Module Available Now");
+          break;
+      } else {
+          dbg.println("ESP Module Not Available");
+          delay(2000);
+          if(i==9){
+            reboot();
+          }
+      }
 
   }
 
@@ -124,9 +138,15 @@ void setESPmode() {
   
 }
 
+  }// End setESPmode()
+
+  
 
 
 
+void reboot() {
+    asm volatile ("  jmp 0");
+}
 
 
 
