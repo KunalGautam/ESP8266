@@ -3,13 +3,13 @@
   Communicate with ESP01 Module.
 
   This code aims at communicating Arduino with ESP01 Module without any problem.
-  
+
   Author: Kunal Gautam
-  v0.01 
+  v0.01
 */
 
-// Creating Alias 
-#define dbg Serial 
+// Creating Alias
+#define dbg Serial
 
 // Defining Variables, you can change these values
 #define espbaud 9600 // Set baud rate of ESP Device
@@ -40,31 +40,21 @@ SoftwareSerial esp(TXPIN, RXPIN);
 
 
 
-
+// Run this Setup function after powering on Arduino
 void setup() {
   dbg.begin(dbgBaud);
-  while (!dbg) {;}
-
-  delay(1000); // Delay assuming ESP is getting powered on
-
-  
+  while (!dbg) {
+    ;
+  }
   esp.begin(espbaud);
-  while (!esp) { ; }
+  while (!esp) {
+    ;
+  }
 
-// Checking if device is available for first time or not
-if (ATresp() == 1) {
-  dbg.println("ESP Module Communicated\nConnecting to WiFi Network");
+  // Checking if device is available for first time or not
+  isDeviceBusy();
+  // Set Device SSID and Password for Client or Router Mode
   setESPmode();
-  dbg.println("WiFi Network Address");
-} else {
-  dbg.println("Unable to communicate with ESP Module[ERR001] Rebooting Arduino");
-  delay(1000);
-  reboot();
-}
-
-
-
-
 
 }// End of setup()
 
@@ -73,13 +63,6 @@ void loop() {
 
 }
 
-int ATresp() { // Get AT Response
-  dbg.println("Sending AT Command");
-  esp.println("AT");
-  wait_for_esp_response(1000, "OK");
-  dbg.println(buffer);  
-  return isok_ready;
-}
 
 void setESPmode() {
   dbg.println("Setting Mode of the Device");
@@ -87,100 +70,111 @@ void setESPmode() {
   esp.println(CWMODE);
   wait_for_esp_response(1000, "OK");
   dbg.println(buffer);
-  
+
   if (CWMODE == 2 || CWMODE == 3) { // Following should run only if CWMODE IS 2 or 3
-        
-      // Set Accesspoint name and password
-      dbg.println("Setting Access Point");
-      esp.print("AT+CWSAP_CUR=\"");
-      esp.print(APID);
-      esp.print("\",\"");
-      esp.print(APPW);
-      esp.print("\",");
-      esp.print(APCH);
-      esp.print(",");
-      esp.println(APECN);
-      wait_for_esp_response(1000, "OK");
-      dbg.println(buffer);
 
-     
-      }
-
-      if (CWMODE == 1 || CWMODE == 3) { // Following should run only if CWMODE IS 1 or 3
-        
-      // Set Accesspoint name and password
-      dbg.println("Connecting to WiFi Network");
-      esp.print("AT+CWJAP_CUR=\"");
-      esp.print(SSID);
-      esp.print("\",\"");
-      esp.print(SSIDPW);
-      esp.println("\"");
-      wait_for_esp_response(5000, "WIFI GOT IP");
-      dbg.println(buffer);
-      // This for loop is to check if device is busy. Sometimes router takes time to get connected. Approx 40 second to wait, and if still not available, reboot Arduino
-       for (int i=0; i <= 19; i++){
-        if (ATresp() == 1) {
-          dbg.println("ESP Module Available Now");
-          break;
-      } else {
-          dbg.println("ESP Module Not Available");
-          delay(2000);
-          if(i==9){
-            reboot();
-          }
-      }
+    // Set Accesspoint name and password
+    dbg.println("Setting Access Point");
+    esp.print("AT+CWSAP_CUR=\"");
+    esp.print(APID);
+    esp.print("\",\"");
+    esp.print(APPW);
+    esp.print("\",");
+    esp.print(APCH);
+    esp.print(",");
+    esp.println(APECN);
+    wait_for_esp_response(1000, "OK");
+    dbg.println(buffer);
+    isDeviceBusy();
 
   }
 
-  
+  if (CWMODE == 1 || CWMODE == 3) { // Following should run only if CWMODE IS 1 or 3
+
+    // Set Accesspoint name and password
+    dbg.println("Connecting to WiFi Network");
+    esp.print("AT+CWJAP_CUR=\"");
+    esp.print(SSID);
+    esp.print("\",\"");
+    esp.print(SSIDPW);
+    esp.println("\"");
+    wait_for_esp_response(5000, "WIFI GOT IP");
+    dbg.println(buffer);
+    isDeviceBusy();
+
+  }
+
+}// End setESPmode()
 
 
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Core Functions, Used many times.
+
+// Device Busy Function. Check if device is busy. If found busy, retry after a second. After 40loops (40Seconds) reboot Arduino
+void isDeviceBusy(){
+    for (int i = 0; i <= 39; i++) {
+      if (ATresp() == 1) {
+        dbg.println("ESP Module Available Now");
+        break;
+      } else {
+        dbg.println("ESP Module Not Available");
+        delay(1000);
+        if (i == 39) {
+          reboot();
+        }
+      }// Else Statement Ends
+
+    }//For Loop End
+}// isDeviceBusy Ends
+
+// AT Response, made seperate from Device busy, as it might be used somewhere else.
+int ATresp() { // Get AT Response
+  dbg.println("Sending AT Command");
+  esp.println("AT");
+  wait_for_esp_response(1000, "OK");
+  dbg.println(buffer);
+  return isok_ready;
 }
 
-  }// End setESPmode()
-
-  
-
-
-
+// Reboot Arduino Function.
 void reboot() {
-    asm volatile ("  jmp 0");
+  asm volatile ("  jmp 0");
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Code for reading response
 
@@ -192,7 +186,7 @@ byte wait_for_esp_response(int timeout, char* term) {
   int len = strlen(term);
   isok_ready = 0;
   // wait for at most timeout milliseconds
-  buffer[0]=0;
+  buffer[0] = 0;
   while (millis() < t + timeout) {
     if (esp.available()) {
       buffer[i++] = esp.read();
