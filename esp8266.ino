@@ -18,7 +18,7 @@
 #define TXPIN 10 //TX Pin of ESP01 Module
 #define RXPIN 11 //RX Pin of ESP01 Module
 #define CWMODE 3 // Set mode of ESP. 1(Client), 2(Server/Router), 3(Both 1+2)
-#define BUFFER_SIZE 128 // Less buffer is good.
+#define BUFFER_SIZE 256 // Less buffer is good.
 
 #define SSID "RANDOMSSID"  // WiFi SSID of the Router
 #define SSIDPW "RANDOMPASSWORD" //WiFi Password of the Router
@@ -55,6 +55,8 @@ void setup() {
   isDeviceBusy();
   // Set Device SSID and Password for Client or Router Mode
   setESPmode();
+  // Get IP
+  getIP();
 
 }// End of setup()
 
@@ -108,7 +110,15 @@ void setESPmode() {
 
 
 
+void getIP() {
+  dbg.println("IP Details");
+  
+  esp.println("AT+CIFSR");
+  wait_for_esp_response(1000, "OK");
+    dbg.println(buffer);
+    isDeviceBusy();
 
+}
 
 
 
@@ -146,20 +156,20 @@ void setESPmode() {
 // Core Functions, Used many times.
 
 // Device Busy Function. Check if device is busy. If found busy, retry after a second. After 40loops (40Seconds) reboot Arduino
-void isDeviceBusy(){
-    for (int i = 0; i <= 39; i++) {
-      if (ATresp() == 1) {
-        dbg.println("ESP Module Available Now");
-        break;
-      } else {
-        dbg.println("ESP Module Not Available");
-        delay(1000);
-        if (i == 39) {
-          reboot();
-        }
-      }// Else Statement Ends
+void isDeviceBusy() {
+  for (int i = 0; i <= 39; i++) {
+    if (ATresp() == 1) {
+      dbg.println("ESP Module Available Now");
+      break;
+    } else {
+      dbg.println("ESP Module Not Available");
+      delay(1000);
+      if (i == 39) {
+        reboot();
+      }
+    }// Else Statement Ends
 
-    }//For Loop End
+  }//For Loop End
 }// isDeviceBusy Ends
 
 // AT Response, made seperate from Device busy, as it might be used somewhere else.
